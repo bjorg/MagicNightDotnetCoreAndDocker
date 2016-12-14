@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 using Grpc.Core;
 
@@ -10,34 +12,47 @@ public static class Program {
             Console.WriteLine("Usage: dotnet client.dll {PORT}");
             return -1;
         }
-        int port;
-        if(!int.TryParse(args[0], out port)) {
+        int[] ports;
+        try {
+            ports = args.Select(arg => int.Parse(arg)).ToArray();
+        } catch {
             Console.WriteLine("invalid format for port, use a number");
             return -1;
         }
         try {
-            var channel = new Channel($"127.0.0.1:{port}", ChannelCredentials.Insecure);
-            var client = new DictionaryService.DictionaryServiceClient(channel);
+            var channels = ports.Select(port => new Channel($"127.0.0.1:{port}", ChannelCredentials.Insecure)).ToArray();
+            var clients = channels.Select(channel => new DictionaryService.DictionaryServiceClient(channel)).ToArray();
             var callOptions = new CallOptions(deadline: DateTime.UtcNow.Add(TimeSpan.FromSeconds(3)));
 
-            // Set key
-            var setRequest = new SetRequest { Key = "foo", Value = "bar" };
-            var setResponse = client.Set(setRequest, callOptions);
-            Console.WriteLine($"setRequest={setRequest}");
-            Console.WriteLine($"setResponse={setResponse}");
+            for(var i = 1; i <= 5; ++i) {
 
-            // Retrieve key
-            var getRequest = new GetRequest { Key = "foo" };
-            var getResponse = client.Get(getRequest, callOptions);
-            Console.WriteLine($"getRequest={getRequest}");
-            Console.WriteLine($"getResponse={getResponse}");
+                // Set key
+                var key = "foo" + i;
+                var value = "bar" + i;
+                var setRequest = new SetRequest { Key = key, Value = value };
+                var setResponse = clients.Set(setRequest, callOptions);
+                Console.WriteLine($"setRequest={setRequest}");
+                Console.WriteLine($"setResponse={setResponse}");
+            }
 
-            // Count keys
+            for(var i = 1; i <= 5; ++i) {
+
+                // Retrieve key
+                var key = "foo" + i;
+                var getRequest = new GetRequest { Key = key };
+                var getResponse = clients.Get(getRequest, callOptions);
+                Console.WriteLine($"getRequest={getRequest}");
+                Console.WriteLine($"getResponse={getResponse}");
+            }
+
+            // Get all keys
             var getAllKeys = new GetAllRequest();
-            var getAllResponse = client.GetAll(getAllKeys, callOptions);
+            var getAllResponse = clients.GetAll(getAllKeys, callOptions);
             Console.WriteLine($"getAllKeys={getAllKeys}");
             Console.WriteLine($"getAllResponse={getAllResponse}");
-            channel.ShutdownAsync().Wait();
+            foreach(var channel in channels) {
+                channel.ShutdownAsync().Wait();
+            }
             Console.WriteLine("\nGRPC client exiting");
 
         } catch (Exception e) {
@@ -45,5 +60,44 @@ public static class Program {
             return -1;
         }
         return 0;
+    }
+}
+
+public static class DictionaryServiceClientEx {
+
+    //--- Extension Methods ---
+    public static GetResponse Get(this DictionaryService.DictionaryServiceClient[] clients, GetRequest request, CallOptions callOptions) {
+        var client = GetClient(request.Key, clients);
+        return client.Get(request, callOptions);
+    }
+
+    public static SetResponse Set(this DictionaryService.DictionaryServiceClient[] clients, SetRequest request, CallOptions callOptions) {
+        var client = GetClient(request.Key, clients);
+        return client.Set(request, callOptions);
+    }
+    public static GetAllResponse GetAll(this DictionaryService.DictionaryServiceClient[] clients, GetAllRequest request, CallOptions callOptions) {
+        var keys = new HashSet<string>();
+        foreach(var client in clients) {
+            try {
+                foreach(var key in client.GetAll(request, callOptions).Keys) {
+                    keys.Add(key);
+                }
+            } catch {
+
+                // ignore error and continue
+                continue;
+            }
+        }
+        var response = new GetAllResponse();
+        response.Keys.AddRange(keys);
+        return response;
+    }
+
+    private static DictionaryService.DictionaryServiceClient GetClient(string key, DictionaryService.DictionaryServiceClient[] clients) {
+        var index = key.GetHashCode() % clients.Length;
+        if(index < 0) {
+            index += clients.Length;
+        }
+        return clients[index];
     }
 }

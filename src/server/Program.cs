@@ -56,7 +56,10 @@ public class Program {
         Console.WriteLine("Firing off GRPC server");
         var server = new Server {
             Services = { DictionaryService.BindService(new DictionaryServiceImpl()) },
-            Ports = { new ServerPort("127.0.0.1", port, ServerCredentials.Insecure) }
+            Ports = {
+                new ServerPort("127.0.0.1", port, ServerCredentials.Insecure),
+                new ServerPort("*", port, ServerCredentials.Insecure)
+            }
         };
 
         // Launch the gRPC server

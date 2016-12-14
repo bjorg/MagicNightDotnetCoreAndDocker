@@ -28,7 +28,7 @@ message GetAllRequest {
 }
 
 message GetAllResponse {
-  int32 keys = 1;
+  repeated string keys = 1;
 }
 
 //

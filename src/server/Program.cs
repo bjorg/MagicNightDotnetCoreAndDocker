@@ -31,7 +31,7 @@ public class DictionaryServiceImpl : DictionaryService.DictionaryServiceBase {
 
     public override Task<GetAllResponse> GetAll(GetAllRequest request, ServerCallContext context) {
         GetAllResponse response = new GetAllResponse();
-        response.Keys = _dict.Keys.Count;
+        response.Keys.AddRange(_dict.Keys);
         return Task.FromResult(response);
     }
 }

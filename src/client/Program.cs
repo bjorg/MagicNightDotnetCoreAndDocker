@@ -129,6 +129,7 @@ public static class DictionaryServiceClientEx {
         if(index < 0) {
             index += clients.Length;
         }
+        Console.WriteLine($"use client {index} of {clients.Length}");
         return clients[index];
     }
 }

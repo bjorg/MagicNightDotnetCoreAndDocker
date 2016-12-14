@@ -31,8 +31,15 @@ public static class Program {
             var getResponse = client.Get(getRequest, callOptions);
             Console.WriteLine($"getRequest={getRequest}");
             Console.WriteLine($"getResponse={getResponse}");
+
+            // Count keys
+            var getAllKeys = new GetAllRequest();
+            var getAllResponse = client.GetAll(getAllKeys, callOptions);
+            Console.WriteLine($"getAllKeys={getAllKeys}");
+            Console.WriteLine($"getAllResponse={getAllResponse}");
             channel.ShutdownAsync().Wait();
             Console.WriteLine("\nGRPC client exiting");
+
         } catch (Exception e) {
             Console.WriteLine($"There was an error: {e.Message}");
             return -1;

@@ -28,6 +28,12 @@ public class DictionaryServiceImpl : DictionaryService.DictionaryServiceBase {
         _dict[request.Key] = request.Value;
         return Task.FromResult(new SetResponse { Success = true });
     }
+
+    public override Task<GetAllResponse> GetAll(GetAllRequest request, ServerCallContext context) {
+        GetAllResponse response = new GetAllResponse();
+        response.Keys = _dict.Keys.Count;
+        return Task.FromResult(response);
+    }
 }
 
 public class Program {
@@ -50,7 +56,7 @@ public class Program {
         Console.WriteLine("Firing off GRPC server");
         var server = new Server {
             Services = { DictionaryService.BindService(new DictionaryServiceImpl()) },
-            Ports = { new ServerPort("*", port, ServerCredentials.Insecure) }
+            Ports = { new ServerPort("127.0.0.1", port, ServerCredentials.Insecure) }
         };
 
         // Launch the gRPC server

@@ -4,7 +4,7 @@ package Dd;
 
 //
 // Messages
-// 
+//
 message GetRequest {
   string key = 1;
 }
@@ -24,10 +24,18 @@ message SetResponse {
   bool success = 1;
 }
 
+message GetAllRequest {
+}
+
+message GetAllResponse {
+  int32 keys = 1;
+}
+
 //
 // Services
-// 
+//
 service DictionaryService {
   rpc Get (GetRequest) returns (GetResponse);
   rpc Set (SetRequest) returns (SetResponse);
+  rpc GetAll (GetAllRequest) returns (GetAllResponse);
 }

@@ -75,7 +75,10 @@ public static class DictionaryServiceClientEx {
         for(var tries = 1; tries <= REDUNDANCY; ++tries) {
             var client = GetClient(request.Key, availableClients.ToArray());
             try {
-                response = client.Get(request, callOptions) ?? response;
+                response = client.Get(request, callOptions);
+                if(response.Found) {
+                    return response;
+                }
             } catch {
                 availableClients.Remove(client);
             }

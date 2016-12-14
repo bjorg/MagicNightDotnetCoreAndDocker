@@ -65,16 +65,44 @@ public static class Program {
 
 public static class DictionaryServiceClientEx {
 
+    //--- Constants ---
+    private const int REDUNDANCY = 2;
+
     //--- Extension Methods ---
     public static GetResponse Get(this DictionaryService.DictionaryServiceClient[] clients, GetRequest request, CallOptions callOptions) {
-        var client = GetClient(request.Key, clients);
-        return client.Get(request, callOptions);
+        var availableClients = clients.ToList();
+        GetResponse response = null;
+        for(var tries = 1; tries <= REDUNDANCY; ++tries) {
+            var client = GetClient(request.Key, availableClients.ToArray());
+            try {
+                response = client.Get(request, callOptions) ?? response;
+            } catch {
+                availableClients.Remove(client);
+            }
+        }
+        if(response == null) {
+            throw new Exception("get oops");
+        }
+        return response;
     }
 
     public static SetResponse Set(this DictionaryService.DictionaryServiceClient[] clients, SetRequest request, CallOptions callOptions) {
-        var client = GetClient(request.Key, clients);
-        return client.Set(request, callOptions);
+        var availableClients = clients.ToList();
+        SetResponse response = null;
+        for(var tries = 1; tries <= REDUNDANCY; ++tries) {
+            var client = GetClient(request.Key, availableClients.ToArray());
+            try {
+                response = client.Set(request, callOptions) ?? response;
+            } catch {
+                availableClients.Remove(client);
+            }
+        }
+        if(response == null) {
+            throw new Exception("set oops");
+        }
+        return response;
     }
+
     public static GetAllResponse GetAll(this DictionaryService.DictionaryServiceClient[] clients, GetAllRequest request, CallOptions callOptions) {
         var keys = new HashSet<string>();
         foreach(var client in clients) {
